@@ -22,19 +22,24 @@
 
 ### 1. 克隆项目
 ```bash
-git clone <repository-url>
+git clone https://github.com/wanglin90/intelligent_qa_system.git
 cd intelligent_qa_system
 ```
 
 ### 2. 安装依赖
 ```bash
+#后端依赖
 pip install -r requirements.txt
+
+#前端依赖
+pip install -r frontend/requirements.txt
 ```
 
 ### 3. 配置环境变量
 ```bash
 cp .env.example .env
 # 编辑.env文件，填入你的OpenAI API Key
+#OPENAI_API_KEY=your_openai_api_key_here
 ```
 
 ### 4. 启动后端服务
@@ -48,24 +53,44 @@ cd frontend
 streamlit run streamlit_app.py
 ```
 
-## 🐳 Docker部署
+## 🐳 Docker部署（推荐生产）
 
 ```bash
-# 构建并启动服务
-docker-compose up -d
+
+# 确保安装了Docker和Docker Compose
+docker --version
+docker-compose --version
+
+# 复制并编辑环境变量
+cp .env.example .env
+# 编辑.env文件，填入OpenAI API Key
+
+# 构建并启动所有服务
+docker-compose -f docker-compose.yml up -d
+
+# 查看运行状态
+docker-compose -f docker-compose.yml ps
 
 # 查看日志
-docker-compose logs -f
+docker-compose -f docker-compose.yml logs -f
 
-# 停止服务
-docker-compose down
+#前端界面：
+http://localhost:8501
+#后端API：
+http://localhost:8000
+
+
+#停止服务
+docker-compose -f docker/docker-compose.yml down
+
 ```
 
 ## 📚 API文档
 
 启动服务后访问：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+ - 前端界面：http://localhost:8501
+ - API文档：http://localhost:8000/docs
+ - ReDoc文档：http://localhost:8000/redoc
 
 ## 🧪 运行测试
 
