@@ -107,14 +107,39 @@ pytest tests/ -v
 ```
 intelligent_qa_system/
 ├── app/                    # 后端应用
+│   ├── __init__.py
+│   ├── main.py            # 应用入口
+│   ├── config.py          # 配置管理
 │   ├── api/               # API路由
+│   │   ├── __init__.py
+│   │   └── endpoints.py   # API端点定义
 │   ├── models/            # 数据模型
+│   │   ├── __init__.py
+│   │   └── schemas.py     # Pydantic模型
 │   ├── services/          # 业务逻辑
+│   │   ├── __init__.py
+│   │   ├── document_processor.py  # 文档处理服务
+│   │   ├── vector_store.py       # 向量存储服务
+│   │   └── rag_agent.py         # RAG智能体
 │   └── utils/             # 工具函数
+│       ├── __init__.py
+│       └── helpers.py
 ├── frontend/              # 前端界面
+│   ├── streamlit_app.py   # Streamlit应用
+│   └── requirements.txt   # 前端依赖
 ├── tests/                 # 测试代码
-├── docker/                # Docker配置
-└── requirements.txt       # 依赖管理
+│   ├── __init__.py
+│   ├── test_document_processor.py
+│   ├── test_rag_agent.py
+│   └── test_vector_store.py
+├── Dockerfile             # 后端Docker文件
+├── Dockerfile.frontend    # 前端Docker文件
+├── docker-compose.yml     # 服务编排配置
+├── .dockerignore         # Docker构建忽略文件
+├── .env.example          # 环境变量模板
+├── .gitignore           # Git忽略文件
+├── requirements.txt      # 后端依赖
+└── README.md            # 项目说明
 ```
 
 ## 🔧 主要配置
