@@ -53,6 +53,10 @@ cd frontend
 streamlit run streamlit_app.py
 ```
 
+### 6. 启动服务后访问：
+ - 前端界面：http://localhost:8501
+ - 后端API：http://localhost:8000
+
 ## 🐳 Docker部署（推荐生产）
 
 ```bash
