@@ -2,10 +2,11 @@ import time
 import logging
 from typing import Dict, List, Any, Optional, Tuple
 
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import PromptTemplate
-from langchain.schema import Document, HumanMessage, AIMessage
+from langchain.schema import Document
+from langchain.schema.messages import HumanMessage, AIMessage
 
 from app.config import settings
 from app.services.vector_store import VectorStoreService
@@ -17,10 +18,11 @@ logger = logging.getLogger(__name__)
 class RAGAgent:
     def __init__(self, vector_store_service: VectorStoreService):
         self.llm = ChatOpenAI(
-            model_name=settings.OPENAI_MODEL,
+            model=settings.DEEPSEEK_MODEL,
             temperature=0.1,
             max_tokens=1000,
-            openai_api_key=settings.OPENAI_API_KEY
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url=settings.DEEPSEEK_BASE_URL
         )
 
         self.vector_store_service = vector_store_service
@@ -150,13 +152,12 @@ class RAGAgent:
         for i, (doc, score) in enumerate(docs_with_scores):
             content = doc.page_content
             source = doc.metadata.get('source', 'Unknown')
-            chunk_id = doc.metadata.get('chunk_id', '')
 
             context_part = f"""
                 文档片段 {i + 1}:
                 内容: {content}
                 来源: {source}
-                相似度: {(1 - score):.3f}
+                相似度: {(score):.3f}
                 ---
             """
             context_parts.append(context_part)
@@ -184,13 +185,26 @@ class RAGAgent:
             return 0.0
 
         # 基于相似度分数计算置信度
-        scores = [1 - score for _, score in docs_with_scores]  # 转换为正向分数
-        avg_score = sum(scores) / len(scores)
-
-        # 考虑文档数量的影响
-        doc_count_factor = min(len(docs_with_scores) / 3, 1.0)
-
-        confidence = avg_score * doc_count_factor
+        # 余弦距离：越小越相似，需要转换为置信度（0-1）
+        scores = [score for _, score in docs_with_scores]
+        
+        # 将余弦距离转换为相似度分数（1 - 距离/2，因为余弦距离最大为2）
+        similarity_scores = [max(0, 1 - score/2) for score in scores]
+        
+        # 使用最好的文档分数作为基础置信度
+        best_score = max(similarity_scores)
+        
+        # 文档数量加成：1个文档0.8，2个文档0.9，3个及以上1.0
+        doc_count_factor = min(0.8 + len(docs_with_scores) * 0.1, 1.0)
+        
+        # 如果最高分数很好（>0.6），给予更高的置信度
+        if best_score > 0.6:
+            confidence = best_score * doc_count_factor
+        else:
+            # 对于较低分数，结合平均值
+            avg_similarity = sum(similarity_scores) / len(similarity_scores)
+            confidence = (best_score * 0.7 + avg_similarity * 0.3) * doc_count_factor
+        
         return round(min(confidence, 1.0), 3)
 
     def _build_sources(self, docs_with_scores: List[Tuple[Document, float]]) -> List[SourceInfo]:
@@ -201,8 +215,9 @@ class RAGAgent:
             source_info = SourceInfo(
                 source=doc.metadata.get('source', 'Unknown'),
                 chunk_id=doc.metadata.get('chunk_id', ''),
-                score=round(1 - score, 3),  # 转换为正向分数
-                content_preview=doc.page_content[:100] + "..." if len(doc.page_content) > 100 else doc.page_content
+                score=round(score, 3),  # 转换为正向分数
+                # content_preview=doc.page_content[:100] + "..." if len(doc.page_content) > 100 else doc.page_content
+                content_preview=doc.page_content
             )
             sources.append(source_info)
 

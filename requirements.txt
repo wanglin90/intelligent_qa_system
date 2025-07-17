@@ -1,15 +1,44 @@
+# Core API Framework
 fastapi==0.104.1
-uvicorn==0.24.0
+uvicorn[standard]==0.24.0
+
+# Frontend
 streamlit==1.28.1
-langchain==0.0.335
-langchain-openai==0.0.2
-chromadb==0.4.15
-python-multipart==0.0.6
-python-dotenv==1.0.0
-pypdf==3.17.0
+
+# LangChain and AI
+langchain==0.1.0
+langchain-openai==0.0.5
+langchain-community==0.0.10
+
+# Vector Database
+chromadb==0.4.22
+huggingface_hub===0.14.1
+sentence-transformers==2.2.2
+
+# Document Processing
+pypdf==3.17.4
 python-docx==1.1.0
-pydantic==2.5.0
+docx2txt==0.8
+python-multipart==0.0.6
+unstructured==0.10.25
+
+# Configuration and Environment
+pydantic==2.5.2
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+
+# HTTP and Async
 requests==2.31.0
 aiofiles==23.2.1
+
+# Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1
+
+# Data Processing (compatible versions)
+numpy==1.24.4
+pandas==2.0.3
+
+# Other dependencies
+tenacity==8.2.3
+tiktoken==0.5.2

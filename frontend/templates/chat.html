@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}智能问答 - 智能文档问答系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card card-custom h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-comments"></i> 智能对话
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="chatContainer" class="chat-container">
+                    <div class="message bot">
+                        <div class="message-content">
+                            <i class="fas fa-robot text-primary"></i>
+                            你好！我是智能文档助手。请先上传文档，然后就可以向我提问了。我会基于您上传的文档内容来回答问题。
+                        </div>
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typingIndicator">
+                    <i class="fas fa-robot"></i> 正在思考中...
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="input-group">
+                    <input type="text" id="messageInput" class="form-control" 
+                           placeholder="请输入您的问题..." maxlength="500">
+                    <button class="btn btn-primary" id="sendButton">
+                        <i class="fas fa-paper-plane"></i> 发送
+                    </button>
+                </div>
+                <small class="text-muted mt-2 d-block">
+                    提示：请确保已上传相关文档，问题越具体，回答越准确
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card card-custom mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar"></i> 系统状态
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="systemStatus">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>后端服务:</span>
+                        <span id="backendStatus" class="badge bg-secondary">检查中...</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>文档数量:</span>
+                        <span id="docCount" class="badge bg-secondary">-</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary w-100" id="refreshStatus">
+                        <i class="fas fa-sync-alt"></i> 刷新状态
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card card-custom mb-3">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="fas fa-tools"></i> 快速操作
+                </h6>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-sm btn-outline-success w-100 mb-2" onclick="location.href='/upload'">
+                    <i class="fas fa-upload"></i> 上传文档
+                </button>
+                <button class="btn btn-sm btn-outline-danger w-100 mb-2" id="clearChat">
+                    <i class="fas fa-trash"></i> 清空对话
+                </button>
+                <button class="btn btn-sm btn-outline-info w-100" onclick="location.href='/manage'">
+                    <i class="fas fa-cog"></i> 文档管理
+                </button>
+            </div>
+        </div>
+        
+        <div class="card card-custom">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb"></i> 使用提示
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="small mb-0">
+                    <li>支持PDF、Word、TXT格式文档</li>
+                    <li>问题越具体，答案越准确</li>
+                    <li>可以进行多轮对话</li>
+                    <li>系统会显示答案来源和置信度</li>
+                    <li>建议文档内容相关且完整</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let sessionId = 'session_' + Date.now();
+
+$(document).ready(function() {
+    // 检查系统状态
+    checkSystemStatus();
+    
+    // 发送消息
+    $('#sendButton').click(sendMessage);
+    $('#messageInput').keypress(function(e) {
+        if (e.which === 13) {
+            sendMessage();
+        }
+    });
+    
+    // 清空对话
+    $('#clearChat').click(function() {
+        if (confirm('确定要清空对话记录吗？')) {
+            clearChat();
+        }
+    });
+    
+    // 刷新状态
+    $('#refreshStatus').click(checkSystemStatus);
+});
+
+function sendMessage() {
+    const message = $('#messageInput').val().trim();
+    if (!message) return;
+    
+    // 显示用户消息
+    addMessage('user', message);
+    $('#messageInput').val('');
+    
+    // 显示输入指示器
+    $('#typingIndicator').show();
+    $('#sendButton').prop('disabled', true);
+    
+    // 发送到后端
+    $.ajax({
+        url: '/api/chat',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            question: message,
+            session_id: sessionId
+        }),
+        success: function(response) {
+            $('#typingIndicator').hide();
+            $('#sendButton').prop('disabled', false);
+            
+            if (response.error) {
+                addMessage('bot', '❌ ' + response.error, true);
+            } else {
+                addBotMessage(response);
+            }
+        },
+        error: function(xhr) {
+            $('#typingIndicator').hide();
+            $('#sendButton').prop('disabled', false);
+            
+            let errorMsg = '❌ 查询失败';
+            if (xhr.responseJSON && xhr.responseJSON.error) {
+                errorMsg += ': ' + xhr.responseJSON.error;
+            }
+            addMessage('bot', errorMsg, true);
+        }
+    });
+}
+
+function addMessage(type, content, isError = false) {
+    const messageDiv = $(`
+        <div class="message ${type}">
+            <div class="message-content">
+                ${type === 'bot' ? '<i class="fas fa-robot text-primary"></i> ' : ''}
+                ${content}
+            </div>
+        </div>
+    `);
+    
+    if (isError) {
+        messageDiv.find('.message-content').addClass('text-danger border-danger');
+    }
+    
+    $('#chatContainer').append(messageDiv);
+    $('#chatContainer').scrollTop($('#chatContainer')[0].scrollHeight);
+}
+
+function addBotMessage(response) {
+    let content = response.answer;
+    
+    // 添加元信息
+    if (response.confidence !== undefined) {
+        content += `
+            <div class="mt-3">
+                <span class="confidence-badge">置信度: ${(response.confidence * 100).toFixed(1)}%</span>
+                <small class="text-muted ms-2">
+                    检索文档: ${response.retrieved_count} 个 | 
+                    处理时间: ${response.processing_time.toFixed(2)}s
+                </small>
+            </div>
+        `;
+    }
+    
+    // 添加来源信息
+    if (response.sources && response.sources.length > 0) {
+        content += '<div class="mt-3"><strong>📋 引用来源:</strong>';
+        response.sources.forEach((source, index) => {
+            content += `
+                <div class="source-info">
+                    <strong>${index + 1}. ${source.source}</strong> 
+                    (相似度: ${(source.score * 100).toFixed(1)}%)
+                    <br><small class="text-muted">${source.content_preview}</small>
+                </div>
+            `;
+        });
+        content += '</div>';
+    }
+    
+    addMessage('bot', content);
+}
+
+function clearChat() {
+    $.ajax({
+        url: '/api/memory/clear',
+        method: 'POST',
+        success: function(response) {
+            $('#chatContainer').empty();
+            addMessage('bot', '✅ 对话记录已清空。你好！我是智能文档助手，请向我提问。');
+            sessionId = 'session_' + Date.now();
+        },
+        error: function() {
+            alert('清空对话失败，请重试');
+        }
+    });
+}
+
+function checkSystemStatus() {
+    $('#refreshStatus').prop('disabled', true);
+    
+    // 检查后端健康状态
+    $.ajax({
+        url: '/api/health',
+        method: 'GET',
+        success: function(response) {
+            $('#backendStatus').removeClass('bg-secondary bg-danger').addClass('bg-success').text('正常');
+        },
+        error: function() {
+            $('#backendStatus').removeClass('bg-secondary bg-success').addClass('bg-danger').text('异常');
+        }
+    });
+    
+    // 检查文档数量
+    $.ajax({
+        url: '/api/documents',
+        method: 'GET',
+        success: function(response) {
+            $('#docCount').removeClass('bg-secondary').addClass('bg-info').text(response.total_documents + ' 个');
+        },
+        error: function() {
+            $('#docCount').removeClass('bg-secondary').addClass('bg-warning').text('获取失败');
+        },
+        complete: function() {
+            $('#refreshStatus').prop('disabled', false);
+        }
+    });
+}
+</script>
+{% endblock %}

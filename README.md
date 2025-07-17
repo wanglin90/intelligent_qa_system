@@ -15,7 +15,7 @@
 ## 📋 系统要求
 
 - Python 3.9+
-- OpenAI API Key
+- DeepSeek API Key
 - 8GB+ RAM推荐
 
 ## 🚀 快速开始
@@ -38,8 +38,8 @@ pip install -r frontend/requirements.txt
 ### 3. 配置环境变量
 ```bash
 cp .env.example .env
-# 编辑.env文件，填入你的OpenAI API Key
-#OPENAI_API_KEY=your_openai_api_key_here
+# 编辑.env文件，填入你的DeepSeek API Key
+#DEEPSEEK_API_KEY=your_deepseek_api_key_here
 ```
 
 ### 4. 启动后端服务
@@ -49,12 +49,11 @@ python -m app.main
 
 ### 5. 启动前端界面
 ```bash
-cd frontend
-streamlit run streamlit_app.py
+python frontend/flask_app.py
 ```
 
 ### 6. 启动服务后访问：
- - 前端界面：http://localhost:8501
+ - 前端界面：http://localhost:5000
  - 后端API：http://localhost:8000
 
 ## 🐳 Docker部署（推荐生产）

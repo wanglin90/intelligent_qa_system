@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}文档管理 - 智能文档问答系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card card-custom">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs"></i> 系统管理
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-database"></i> 文档数据库
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="documentStats" class="mb-3">
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <div class="border rounded p-3">
+                                                <h4 id="totalDocs" class="text-primary mb-0">-</h4>
+                                                <small class="text-muted">文档总数</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="border rounded p-3">
+                                                <h4 id="collectionName" class="text-info mb-0">-</h4>
+                                                <small class="text-muted">集合名称</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-outline-success btn-sm w-100 mb-2" id="refreshDocs">
+                                    <i class="fas fa-sync-alt"></i> 刷新信息
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm w-100" id="clearAllDocs">
+                                    <i class="fas fa-trash-alt"></i> 清空所有文档
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-brain"></i> 对话记忆
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="memoryStats" class="mb-3">
+                                    <div class="text-center border rounded p-3 mb-3">
+                                        <h4 id="memoryStatus" class="text-success mb-0">正常</h4>
+                                        <small class="text-muted">记忆状态</small>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <p><strong>功能说明:</strong></p>
+                                        <ul class="mb-0">
+                                            <li>保存最近5轮对话</li>
+                                            <li>支持上下文理解</li>
+                                            <li>可手动清空重置</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <button class="btn btn-outline-warning btn-sm w-100" id="clearMemory">
+                                    <i class="fas fa-eraser"></i> 清空对话记忆
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card border-warning mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="fas fa-tools"></i> 批量操作
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <button class="btn btn-outline-primary w-100" onclick="location.href='/upload'">
+                                    <i class="fas fa-upload"></i> 上传新文档
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button class="btn btn-outline-success w-100" onclick="location.href='/'">
+                                    <i class="fas fa-comments"></i> 开始对话
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button class="btn btn-outline-danger w-100" id="resetSystem">
+                                    <i class="fas fa-redo"></i> 系统重置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card card-custom mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-heartbeat"></i> 系统健康检查
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="healthCheck">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>后端服务:</span>
+                        <span id="backendHealth" class="badge bg-secondary">检查中...</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>数据库连接:</span>
+                        <span id="dbHealth" class="badge bg-secondary">检查中...</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>AI服务:</span>
+                        <span id="aiHealth" class="badge bg-secondary">待测试</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm w-100" id="runHealthCheck">
+                        <i class="fas fa-stethoscope"></i> 运行健康检查
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card card-custom mb-3">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-line"></i> 系统信息
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="small">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>版本:</span>
+                        <span class="text-muted">v1.0.0</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>技术栈:</span>
+                        <span class="text-muted">FastAPI + ChromaDB</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>AI模型:</span>
+                        <span class="text-muted">OpenAI GPT</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>向量模型:</span>
+                        <span class="text-muted">text-embedding-ada-002</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>API地址:</span>
+                        <a href="http://localhost:8000/docs" target="_blank" class="text-primary small">
+                            查看文档
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card card-custom">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> 操作日志
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="operationLog" style="max-height: 200px; overflow-y: auto;">
+                    <div class="small text-muted">暂无操作记录</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 初始化
+    updateAllInfo();
+    
+    // 绑定事件
+    $('#refreshDocs').click(updateDocumentInfo);
+    $('#clearAllDocs').click(confirmClearDocuments);
+    $('#clearMemory').click(confirmClearMemory);
+    $('#resetSystem').click(confirmResetSystem);
+    $('#runHealthCheck').click(runHealthCheck);
+});
+
+function updateAllInfo() {
+    updateDocumentInfo();
+    runHealthCheck();
+}
+
+function updateDocumentInfo() {
+    $('#refreshDocs').prop('disabled', true);
+    
+    $.ajax({
+        url: '/api/documents',
+        method: 'GET',
+        success: function(response) {
+            $('#totalDocs').text(response.total_documents);
+            $('#collectionName').text(response.collection_name || 'langchain');
+            addLog('获取文档信息成功', 'success');
+        },
+        error: function() {
+            $('#totalDocs').text('获取失败');
+            $('#collectionName').text('-');
+            addLog('获取文档信息失败', 'error');
+        },
+        complete: function() {
+            $('#refreshDocs').prop('disabled', false);
+        }
+    });
+}
+
+function confirmClearDocuments() {
+    if (confirm('⚠️ 确定要清空所有文档吗？\n\n此操作将删除所有已上传的文档，且无法恢复！')) {
+        clearAllDocuments();
+    }
+}
+
+function clearAllDocuments() {
+    $('#clearAllDocs').prop('disabled', true);
+    
+    $.ajax({
+        url: '/api/documents',
+        method: 'DELETE',
+        success: function(response) {
+            alert('✅ 所有文档已清空');
+            updateDocumentInfo();
+            addLog('清空所有文档', 'warning');
+        },
+        error: function(xhr) {
+            const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : '清空失败';
+            alert('❌ ' + errorMsg);
+            addLog('清空文档失败: ' + errorMsg, 'error');
+        },
+        complete: function() {
+            $('#clearAllDocs').prop('disabled', false);
+        }
+    });
+}
+
+function confirmClearMemory() {
+    if (confirm('确定要清空对话记忆吗？\n\n此操作将清除所有对话历史记录。')) {
+        clearMemory();
+    }
+}
+
+function clearMemory() {
+    $('#clearMemory').prop('disabled', true);
+    
+    $.ajax({
+        url: '/api/memory/clear',
+        method: 'POST',
+        success: function(response) {
+            alert('✅ 对话记忆已清空');
+            addLog('清空对话记忆', 'info');
+        },
+        error: function(xhr) {
+            const errorMsg = xhr.responseJSON ? xhr.responseJSON.error : '清空失败';
+            alert('❌ ' + errorMsg);
+            addLog('清空记忆失败: ' + errorMsg, 'error');
+        },
+        complete: function() {
+            $('#clearMemory').prop('disabled', false);
+        }
+    });
+}
+
+function confirmResetSystem() {
+    if (confirm('⚠️ 确定要重置整个系统吗？\n\n此操作将：\n- 清空所有文档\n- 清空对话记忆\n- 重置所有设置\n\n此操作无法恢复！')) {
+        resetSystem();
+    }
+}
+
+function resetSystem() {
+    $('#resetSystem').prop('disabled', true);
+    
+    // 依次执行清空操作
+    Promise.all([
+        $.ajax({ url: '/api/documents', method: 'DELETE' }),
+        $.ajax({ url: '/api/memory/clear', method: 'POST' })
+    ]).then(() => {
+        alert('✅ 系统重置完成');
+        updateAllInfo();
+        addLog('系统重置完成', 'warning');
+    }).catch((error) => {
+        alert('❌ 系统重置部分失败，请检查日志');
+        addLog('系统重置失败', 'error');
+    }).finally(() => {
+        $('#resetSystem').prop('disabled', false);
+    });
+}
+
+function runHealthCheck() {
+    $('#runHealthCheck').prop('disabled', true);
+    
+    // 重置状态
+    $('#backendHealth, #dbHealth').removeClass('bg-success bg-danger bg-warning').addClass('bg-secondary').text('检查中...');
+    
+    // 检查后端服务
+    $.ajax({
+        url: '/api/health',
+        method: 'GET',
+        timeout: 5000,
+        success: function(response) {
+            $('#backendHealth').removeClass('bg-secondary bg-danger').addClass('bg-success').text('正常');
+            $('#dbHealth').removeClass('bg-secondary bg-danger').addClass('bg-success').text('正常');
+            addLog('健康检查通过', 'success');
+        },
+        error: function() {
+            $('#backendHealth').removeClass('bg-secondary bg-success').addClass('bg-danger').text('异常');
+            $('#dbHealth').removeClass('bg-secondary bg-success').addClass('bg-warning').text('未知');
+            addLog('健康检查失败', 'error');
+        },
+        complete: function() {
+            $('#runHealthCheck').prop('disabled', false);
+        }
+    });
+    
+    // AI服务测试（模拟）
+    setTimeout(() => {
+        $('#aiHealth').removeClass('bg-secondary').addClass('bg-info').text('配置中');
+    }, 1000);
+}
+
+function addLog(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    const typeClass = {
+        'success': 'text-success',
+        'error': 'text-danger', 
+        'warning': 'text-warning',
+        'info': 'text-info'
+    }[type] || 'text-muted';
+    
+    const logEntry = `
+        <div class="border-bottom pb-1 mb-1">
+            <small class="${typeClass}">
+                [${timestamp}] ${message}
+            </small>
+        </div>
+    `;
+    
+    const logContainer = $('#operationLog');
+    
+    // 如果是第一条日志，清空占位文本
+    if (logContainer.find('.text-muted').length && logContainer.text().includes('暂无操作记录')) {
+        logContainer.empty();
+    }
+    
+    logContainer.prepend(logEntry);
+    
+    // 保持最多10条记录
+    const logs = logContainer.find('div');
+    if (logs.length > 10) {
+        logs.slice(10).remove();
+    }
+}
+</script>
+{% endblock %}

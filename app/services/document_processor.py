@@ -4,7 +4,7 @@ import logging
 from typing import List, Dict, Any
 from pathlib import Path
 
-from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain_community.document_loaders import PyMuPDFLoader, UnstructuredWordDocumentLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 
@@ -23,8 +23,8 @@ class DocumentProcessor:
         )
 
         self.loaders = {
-            '.pdf': PyPDFLoader,
-            '.docx': Docx2txtLoader,
+            '.pdf': PyMuPDFLoader,
+            '.docx': UnstructuredWordDocumentLoader,
             '.txt': TextLoader
         }
 

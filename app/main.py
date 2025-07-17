@@ -16,8 +16,7 @@ logging.basicConfig(
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="1.0.0",
-    description="基于大模型的智能文档问答系统",
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    description="基于大模型的智能文档问答系统"
 )
 
 # 添加CORS中间件

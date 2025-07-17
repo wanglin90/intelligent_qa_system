@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}文档上传 - 智能文档问答系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card card-custom">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-upload"></i> 文档上传
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                        <h4>拖拽文件到这里或点击选择</h4>
+                        <p class="text-muted">支持 PDF、Word、TXT 格式，最大 16MB</p>
+                        <input type="file" id="fileInput" class="d-none" accept=".pdf,.docx,.txt" multiple>
+                        <button class="btn btn-primary btn-lg" id="selectFileBtn">
+                            <i class="fas fa-folder-open"></i> 选择文件
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="selectedFiles" class="mt-4" style="display: none;">
+                    <h6>选中的文件:</h6>
+                    <div id="fileList"></div>
+                    <button class="btn btn-success btn-lg mt-3" id="uploadBtn">
+                        <i class="fas fa-upload"></i> 开始上传
+                    </button>
+                    <button class="btn btn-secondary btn-lg mt-3 ms-2" id="clearFiles">
+                        <i class="fas fa-times"></i> 清空选择
+                    </button>
+                </div>
+                
+                <div id="uploadProgress" class="mt-4" style="display: none;">
+                    <h6>上传进度:</h6>
+                    <div class="progress mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div id="uploadResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card card-custom mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> 上传说明
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li><strong>支持格式:</strong> PDF、Word (.docx)、纯文本 (.txt)</li>
+                    <li><strong>文件大小:</strong> 最大 16MB</li>
+                    <li><strong>批量上传:</strong> 支持同时选择多个文件</li>
+                    <li><strong>处理时间:</strong> 根据文件大小而定</li>
+                    <li><strong>存储方式:</strong> 文档会被分块存储到向量数据库</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card card-custom mb-3">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> 注意事项
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0 small">
+                    <li>文档内容应该清晰、完整</li>
+                    <li>避免上传重复的文档</li>
+                    <li>建议文档内容相关联</li>
+                    <li>PDF文档请确保可正常复制文字</li>
+                    <li>上传后会自动进行文本提取和分块</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card card-custom">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-pie"></i> 系统状态
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="systemInfo">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>当前文档数:</span>
+                        <span id="docCount" class="badge bg-secondary">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>系统状态:</span>
+                        <span id="systemStatus" class="badge bg-secondary">检查中...</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary w-100" id="refreshInfo">
+                        <i class="fas fa-sync-alt"></i> 刷新信息
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedFiles = [];
+
+$(document).ready(function() {
+    // 初始化
+    updateSystemInfo();
+    
+    // 文件选择事件
+    $('#selectFileBtn').click(() => $('#fileInput').click());
+    $('#fileInput').change(handleFileSelect);
+    $('#uploadBtn').click(uploadFiles);
+    $('#clearFiles').click(clearFileSelection);
+    $('#refreshInfo').click(updateSystemInfo);
+    
+    // 拖拽上传
+    setupDragAndDrop();
+});
+
+function setupDragAndDrop() {
+    const uploadArea = $('#uploadArea')[0];
+    
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        $('#uploadArea').addClass('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        $('#uploadArea').removeClass('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        $('#uploadArea').removeClass('dragover');
+        
+        const files = Array.from(e.dataTransfer.files);
+        addFilesToSelection(files);
+    });
+}
+
+function handleFileSelect(e) {
+    const files = Array.from(e.target.files);
+    addFilesToSelection(files);
+}
+
+function addFilesToSelection(files) {
+    const validFiles = files.filter(file => {
+        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+        const validExtensions = ['.pdf', '.docx', '.txt'];
+        const hasValidType = validTypes.includes(file.type);
+        const hasValidExt = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+        const validSize = file.size <= 16 * 1024 * 1024; // 16MB
+        
+        if (!hasValidType && !hasValidExt) {
+            showAlert('error', `文件 "${file.name}" 格式不支持`);
+            return false;
+        }
+        
+        if (!validSize) {
+            showAlert('error', `文件 "${file.name}" 超过16MB限制`);
+            return false;
+        }
+        
+        return true;
+    });
+    
+    selectedFiles = [...selectedFiles, ...validFiles];
+    updateFileList();
+    
+    if (validFiles.length > 0) {
+        showAlert('success', `已选择 ${validFiles.length} 个文件`);
+    }
+}
+
+function updateFileList() {
+    if (selectedFiles.length === 0) {
+        $('#selectedFiles').hide();
+        return;
+    }
+    
+    $('#selectedFiles').show();
+    
+    const fileListHtml = selectedFiles.map((file, index) => `
+        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+            <div>
+                <i class="fas fa-file-alt text-primary me-2"></i>
+                <strong>${file.name}</strong>
+                <small class="text-muted ms-2">(${formatFileSize(file.size)})</small>
+            </div>
+            <button class="btn btn-sm btn-outline-danger" onclick="removeFile(${index})">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+    
+    $('#fileList').html(fileListHtml);
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    updateFileList();
+}
+
+function clearFileSelection() {
+    selectedFiles = [];
+    updateFileList();
+    $('#fileInput').val('');
+}
+
+function uploadFiles() {
+    if (selectedFiles.length === 0) {
+        showAlert('warning', '请先选择文件');
+        return;
+    }
+    
+    $('#uploadProgress').show();
+    $('#uploadBtn').prop('disabled', true);
+    
+    const totalFiles = selectedFiles.length;
+    let completedFiles = 0;
+    const results = [];
+    
+    // 更新进度条
+    function updateProgress() {
+        const progress = (completedFiles / totalFiles) * 100;
+        $('.progress-bar').css('width', progress + '%');
+    }
+    
+    // 逐个上传文件
+    async function uploadFile(file, index) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+            const response = await $.ajax({
+                url: '/api/upload',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false
+            });
+            
+            results.push({
+                filename: file.name,
+                success: true,
+                message: `✅ ${response.filename}: ${response.chunks_count} 个文档块`,
+                data: response
+            });
+            
+        } catch (error) {
+            let errorMsg = '上传失败';
+            if (error.responseJSON && error.responseJSON.error) {
+                errorMsg = error.responseJSON.error;
+            }
+            
+            results.push({
+                filename: file.name,
+                success: false,
+                message: `❌ ${file.name}: ${errorMsg}`
+            });
+        }
+        
+        completedFiles++;
+        updateProgress();
+        updateUploadResults();
+    }
+    
+    // 显示上传结果
+    function updateUploadResults() {
+        const resultsHtml = results.map(result => `
+            <div class="alert ${result.success ? 'alert-success' : 'alert-danger'} py-2">
+                ${result.message}
+            </div>
+        `).join('');
+        
+        $('#uploadResults').html(resultsHtml);
+        
+        if (completedFiles === totalFiles) {
+            $('#uploadBtn').prop('disabled', false);
+            const successCount = results.filter(r => r.success).length;
+            
+            if (successCount > 0) {
+                setTimeout(() => {
+                    updateSystemInfo();
+                    clearFileSelection();
+                    $('#uploadProgress').hide();
+                }, 2000);
+            }
+        }
+    }
+    
+    // 开始上传
+    selectedFiles.forEach((file, index) => {
+        setTimeout(() => uploadFile(file, index), index * 100);
+    });
+}
+
+function updateSystemInfo() {
+    $('#refreshInfo').prop('disabled', true);
+    
+    // 检查系统状态
+    $.ajax({
+        url: '/api/health',
+        method: 'GET',
+        success: function(response) {
+            $('#systemStatus').removeClass('bg-secondary bg-danger').addClass('bg-success').text('正常');
+        },
+        error: function() {
+            $('#systemStatus').removeClass('bg-secondary bg-success').addClass('bg-danger').text('异常');
+        }
+    });
+    
+    // 获取文档数量
+    $.ajax({
+        url: '/api/documents',
+        method: 'GET',
+        success: function(response) {
+            $('#docCount').removeClass('bg-secondary').addClass('bg-info').text(response.total_documents + ' 个');
+        },
+        error: function() {
+            $('#docCount').removeClass('bg-secondary').addClass('bg-warning').text('获取失败');
+        },
+        complete: function() {
+            $('#refreshInfo').prop('disabled', false);
+        }
+    });
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showAlert(type, message) {
+    const alertClass = {
+        'success': 'alert-success',
+        'error': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+    
+    const alertHtml = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    $('#uploadResults').prepend(alertHtml);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        $('.alert').first().alert('close');
+    }, 3000);
+}
+</script>
+{% endblock %}
