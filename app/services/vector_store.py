@@ -115,17 +115,6 @@ class VectorStoreService:
                 print(f"  余弦距离: {score}")
                 print(f"  相似度分数: {max(0, 1 - score/2):.3f}")
                 print("---")
-            
-            # 将结果转换为JSON格式
-            results_json = []
-            for doc, score in results:
-                result_item = {
-                    "content": doc.page_content,
-                    "metadata": doc.metadata,
-                    "score": score
-                }
-                results_json.append(result_item)
-            logger.info("带相似度分数的搜索结果JSON:\n" + json.dumps(results_json, ensure_ascii=False, indent=2))
             return results
 
         except Exception as e:

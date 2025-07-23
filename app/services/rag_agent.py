@@ -157,7 +157,7 @@ class RAGAgent:
                 文档片段 {i + 1}:
                 内容: {content}
                 来源: {source}
-                相似度: {(score):.3f}
+                相似度: {(1- score/2):.3f}
                 ---
             """
             context_parts.append(context_part)
@@ -215,7 +215,7 @@ class RAGAgent:
             source_info = SourceInfo(
                 source=doc.metadata.get('source', 'Unknown'),
                 chunk_id=doc.metadata.get('chunk_id', ''),
-                score=round(score, 3),  # 转换为正向分数
+                score=1- score/2,  # 转换为正向分数
                 # content_preview=doc.page_content[:100] + "..." if len(doc.page_content) > 100 else doc.page_content
                 content_preview=doc.page_content
             )

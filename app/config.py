@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 50
 
     # 检索设置
-    SIMILARITY_THRESHOLD: float = 0.7
+    SIMILARITY_THRESHOLD: float = 0.6
     MAX_RETRIEVED_DOCS: int = 5
 
     # 日志设置
